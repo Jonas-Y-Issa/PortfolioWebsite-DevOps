@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  nginx-image:
+    image: 192.168.1.102:5000/nginx-image:latest
+    restart: always
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      portfolio-network:
+        ipv4_address: 172.20.0.4
+  asp-portfolio:
+    image: 192.168.1.102:5000/asp-portfolio-image:latest
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+    ports:
+      - "5000:5000"
+    depends_on:
+      - nginx-image
+    networks:
+      portfolio-network:
+        ipv4_address: 172.20.0.5
+  django-portfolio:
+    image: 192.168.1.102:5000/django-portfolio-image:latest
+    command: gunicorn MyWebsite.wsgi:application --bind 0.0.0.0:8000
+    restart: always
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+    depends_on:
+      - asp-portfolio
+    ports:
+      - "8000:8000"
+    networks:
+      portfolio-network:
+        ipv4_address: 172.20.0.6
+        
+networks:
+  portfolio-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  static_volume:

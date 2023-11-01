@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  nginx-image:
+    image: nginx-image:latest
+    restart: always
+    container_name: "nginx-portfolio-container"
+    deploy:
+      placement:
+        constraints:
+          - node.platform.os == linux
+          - node.platform.arch == arm64
+    secrets:
+      - server_cert_fullchain
+      - server_cert_privkey
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+    ports:
+      - 1337:80
+    networks:
+      portfolio-network:
+        ipv4_address: 172.20.0.4
+  asp-portfolio:
+    image: asp-portfolio-image:latest
+    deploy:
+      placement:
+        constraints:
+          - node.platform.os == linux
+          - node.platform.arch == arm64
+    depends_on:
+      - nginx-image
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+    ports:
+      - "5000:5000"
+    networks:
+      portfolio-network:
+        ipv4_address: 172.20.0.5
+  django-portfolio:
+    image: django-portfolio-image:latest
+    build: ./app
+    command: gunicorn Website.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - ./app/:/usr/src/app/
+    ports:
+      - 8000:8000
+    depends_on:
+      - asp-portfolio
+    env_file:
+      - ./.env.dev
+    #   - db
+#   db:
+#     image: postgres:15
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data/
+#     env_file:
+#       - ./.env.prod.db
+
+volumes:
+  static_volume:
+#   postgres_data:
+  
+networks:
+  portfolio-network:
+    driver: overlay
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+secrets:
+  server_cert_fullchain:
+    file: ../nginx/ssl/developerjonas.com/fullchain.pem
+  server_cert_privkey:
+    file: ../nginx/ssl/developerjonas.com/privkey.pem

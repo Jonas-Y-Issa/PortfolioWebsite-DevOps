@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  nginx-image:
+    image: nginx-image:latest
+    restart: always
+    container_name: "nginx-portfolio-container"
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+    build:
+      platforms:
+        - "linux/arm64"
+      context: ../../
+      dockerfile: ./DevOps/Docker/nginx/Dockerfile
+      cache_from:
+        - nginx-image:latest
+    depends_on:
+      - django-portfolio
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      portfolio-network:
+        ipv4_address: 172.20.0.4
+  asp-portfolio:
+    image: asp-portfolio-image:latest
+    restart: always
+    container_name: "asp-portfolio-container"
+    build:
+      platforms:
+        - "linux/arm64"
+      context: ../../
+      dockerfile: ./DevOps/Docker/asp/Dockerfile
+      cache_from:
+        - asp-portfolio-image:latest
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+    ports:
+      - "5000:5000"
+    networks:
+      portfolio-network:
+        ipv4_address: 172.20.0.5
+  django-portfolio:
+    image: django-portfolio-image:latest
+    restart: always
+    container_name: "django-portfolio-container"
+    build:
+      platforms:
+        - "linux/arm64"
+      context: ../../
+      dockerfile: ./DevOps/Docker/django/Dockerfile.prod
+      cache_from:
+        - django-portfolio-image:latest
+    command: gunicorn hello_django.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+    depends_on:
+      - asp-portfolio
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../../Django-Portfolio/Website/.env.prod
+    networks:
+      portfolio-network:
+        ipv4_address: 172.20.0.6
+
+networks:
+  portfolio-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  static_volume:

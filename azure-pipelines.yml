@@ -1,0 +1,51 @@
+trigger:
+  branches:
+    include:
+    - master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: TerraformTaskV4@0
+  displayName: 'Install Terraform'
+  inputs:
+    terraformVersion: 'latest'
+
+- checkout: self
+  displayName: 'Checkout repository'
+
+- task: TerraformTaskV4@1
+  displayName: 'Terraform Init'
+  inputs:
+    command: 'init'
+    workingDirectory: '$(Build.SourcesDirectory)'
+    backendType: 'azurerm'
+    ensureBackend: true
+    backendServiceArm: '<service_connection_name>'
+    resourceGroupName: '<resource_group_name>'
+    storageAccountName: '<storage_account_name>'
+    containerName: '<container_name>'
+    key: '<state_file_key>'
+
+- task: TerraformTaskV3@2
+  displayName: 'Terraform Validate'
+  inputs:
+    command: 'validate'
+    workingDirectory: '$(Build.SourcesDirectory)'
+
+- task: TerraformTaskV3@3
+  displayName: 'Terraform Plan'
+  inputs:
+    command: 'plan'
+    workingDirectory: '$(Build.SourcesDirectory)'
+    environmentServiceName: '<service_connection_name>'
+    commandOptions: '-out=tfplan'
+
+- task: TerraformTaskV3@3
+  displayName: 'Terraform Apply'
+  inputs:
+    command: 'apply'
+    workingDirectory: '$(Build.SourcesDirectory)'
+    environmentServiceName: '<service_connection_name>'
+    commandOptions: '-auto-approve -input=false tfplan'

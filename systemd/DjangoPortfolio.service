@@ -1,0 +1,27 @@
+[Unit]
+Description=DjangoPortfolio-gunicorn Daemon
+After=network.target
+
+[Service]
+Type=forking
+WorkingDirectory=/home/nimbus/env/bin
+ExecStart=/home/nimbus/env/bin/gunicorn_start
+unix:/home/nimbus/portfolioWebsite/run/gunicorn.sock /home/nimbus/portfolioWebsite/MyWebsite.wsgi:application
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+RemainAfterExit=yes
+User=nimbus
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+
+
+
+
+
+

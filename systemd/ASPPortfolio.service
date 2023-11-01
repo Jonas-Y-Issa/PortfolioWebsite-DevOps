@@ -1,0 +1,17 @@
+[Unit]
+Description=ASPPortfolio
+After=network.target
+
+[Service]
+Type=forking
+WorkingDirectory=/home/nimbus/portfolioWebsite/ASPPortfolio/publish/
+ExecStart=/home/nimbus/portfolioWebsite/ASPPortfolio/publish/ASPPortfolio
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+RemainAfterExit=yes
+User=nimbus
+TimeoutSec=0
+
+[Install]
+WantedBy=multi-user.target

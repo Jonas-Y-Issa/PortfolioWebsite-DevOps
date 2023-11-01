@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  nginx-image:
+    image: 192.168.1.102:5000/nginx-image:latest
+    restart: always
+    container_name: "nginx-portfolio-container"
+    build:
+      platforms:
+        - "linux/arm64"
+      context: ../../
+      dockerfile: ./DevOps/Docker/nginx/Dockerfile
+      cache_from:
+        - nginx-image:latest
+    ports:
+      - "80:80"
+    networks:
+      portfolio-network:
+        ipv4_address: 172.20.0.4
+  asp-portfolio:
+    image: 192.168.1.102:5000/asp-portfolio-image:latest
+    restart: always
+    container_name: "asp-portfolio-container"
+    build:
+      platforms:
+        - "linux/arm64"
+      context: ../../
+      dockerfile: ./DevOps/Docker/asp/Dockerfile
+      cache_from:
+        - asp-portfolio-image:latest
+    depends_on:
+      - nginx-image
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+    ports:
+      - "5000:5000"
+    networks:
+      portfolio-network:
+        ipv4_address: 172.20.0.5
+  django-portfolio:
+    image: 192.168.1.102:5000/django-portfolio-image:latest
+    restart: always
+    container_name: "django-portfolio-container"
+    build:
+      platforms:
+        - "linux/arm64"
+      context: ../../
+      dockerfile: ./DevOps/Docker/django/Dockerfile
+      cache_from:
+        - django-portfolio-image:latest
+    depends_on:
+      - asp-portfolio
+    ports:
+      - "8000:8000"
+    networks:
+      portfolio-network:
+        ipv4_address: 172.20.0.6
+        
+networks:
+  portfolio-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

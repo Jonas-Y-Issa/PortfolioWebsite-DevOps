@@ -1,0 +1,63 @@
+###########
+# BUILDER #
+###########
+
+# Use official base image
+FROM python:3.11.4-slim-buster as builder
+
+# Set working directory and expose port
+WORKDIR /usr/src/app
+EXPOSE 8000
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Install system and Python dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc && \
+    pip install --upgrade pip && \
+    pip install flake8
+
+COPY Django-Portfolio/Website .
+# Uncomment the next line if you want to run linting
+# RUN flake8 --ignore=E501,F401 .
+
+# Install Python dependencies
+COPY Django-Portfolio/requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt
+
+#########
+# FINAL #
+#########
+
+# Use official base image
+FROM python:3.11.4-slim-buster
+
+# Set environment variables
+ENV HOME=/home/app \
+    APP_HOME=/home/app/web
+
+# Create app user and directories
+RUN apt-get update && apt-get install -y --no-install-recommends netcat && \
+    addgroup --system app && adduser --system --group app && \
+    mkdir -p $APP_HOME && \
+    chown -R app:app $APP_HOME
+
+# Set working directory
+WORKDIR $APP_HOME
+
+# Install Python dependencies
+COPY --from=builder /usr/src/app/wheels /wheels
+RUN pip install --upgrade pip && \
+    pip install --no-cache /wheels/* && \
+    pip install python-decouple
+
+# Copy entrypoint and project files
+COPY Django-Portfolio/Website $APP_HOME
+
+# Switch to app user
+USER app
+
+# Set entrypoint
+CMD ["gunicorn", "MyWebsite.wsgi:application", "--bind", "0.0.0.0:8000"]
