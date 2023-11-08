@@ -19,7 +19,7 @@ RUN apt-get update && \
     pip install --upgrade pip && \
     pip install flake8
 
-COPY Django-Portfolio/Website .
+COPY Django-Portfolio .
 # Uncomment the next line if you want to run linting
 # RUN flake8 --ignore=E501,F401 .
 
@@ -54,7 +54,7 @@ RUN pip install --upgrade pip && \
     pip install python-decouple
 
 # Copy entrypoint and project files
-COPY Django-Portfolio/Website $APP_HOME
+COPY Django-Portfolio $APP_HOME
 
 # Switch to app user
 USER app
